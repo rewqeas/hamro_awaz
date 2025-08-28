@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "name": "Ronak Neupane",
+    "phone": "9841000000",
+    "password": "pass123",
+    "role": "citizen",
+    "city": "Kathmandu",
+    "municipality": "Kathmandu Metropolitan",
+    "ward": "Ward 3"
+  },
+  {
+    "id": 2,
+    "name": "Aayush Shrestha",
+    "phone": "9841000001",
+    "password": "pass123",
+    "role": "citizen",
+    "city": "Kathmandu",
+    "municipality": "Lalitpur Metropolitan",
+    "ward": "Ward 5"
+  },
+  {
+    "id": 3,
+    "name": "Sita Lama",
+    "phone": "9841000002",
+    "password": "pass123",
+    "role": "citizen",
+    "city": "Bhaktapur",
+    "municipality": "Bhaktapur Municipality",
+    "ward": "Ward 10"
+  },
+  {
+    "id": 4,
+    "name": "Ramesh Karki",
+    "phone": "9841000003",
+    "password": "pass123",
+    "role": "citizen",
+    "city": "Kathmandu",
+    "municipality": "Kirtipur Municipality",
+    "ward": "Ward 2"
+  },
+  {
+    "id": 5,
+    "name": "Anjali Thapa",
+    "phone": "9841000004",
+    "password": "pass123",
+    "role": "citizen",
+    "city": "Lalitpur",
+    "municipality": "Godawari Municipality",
+    "ward": "Ward 7"
+  },
+  {
+    "id": 6,
+    "name": "Milan Gurung",
+    "phone": "9841000005",
+    "password": "pass123",
+    "role": "citizen",
+    "city": "Kathmandu",
+    "municipality": "Kathmandu Metropolitan",
+    "ward": "Ward 12"
+  },
+  {
+    "id": 7,
+    "name": "Test User",
+    "phone": "9841000999",
+    "password": "testpass",
+    "role": "citizen",
+    "city": "Kathmandu",
+    "municipality": "Kathmandu Metropolitan",
+    "ward": "Ward 12"
+  }
+]
