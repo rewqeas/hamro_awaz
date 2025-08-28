@@ -1,0 +1,5 @@
+[
+  {"id": 100, "name": "Kathmandu Municipality", "city": "Kathmandu", "municipality": "Kathmandu Metropolitan", "activities": []},
+  {"id": 101, "name": "Lalitpur Municipality", "city": "Lalitpur", "municipality": "Lalitpur Metropolitan", "activities": []},
+  {"id": 102, "name": "Bhaktapur Municipality", "city": "Bhaktapur", "municipality": "Bhaktapur Municipality", "activities": []}
+]

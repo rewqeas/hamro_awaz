@@ -1,0 +1,29 @@
+complaint-box/
+│
+├── backend/                      
+│   ├── main.py                   # FastAPI app (serves APIs)
+│   ├── models.py                 # Data models (Complaint, User, Municipality)
+│   ├── routes/
+│   │   ├── complaints.py         # Submission + feed APIs
+│   │   ├── auth.py               # Phone login APIs
+│   │   ├── municipality.py       # Dashboard APIs
+│   ├── utils/
+│   │   ├── file_handler.py       # Image save & JSON update
+│   │   └── auth_utils.py         # OTP verification
+│   ├── data/
+│   │   ├── complaints.json
+│   │   ├── users.json
+│   │   └── municipalities.json
+│   └── uploads/                  # Images
+│
+├── frontend/                     
+│   └── streamlit_app.py          # Streamlit UI for both citizen & municipality
+│
+├── docs/
+│   ├── flowchart.png
+│   ├── api_endpoints.md
+│   └── db_schema.md
+│
+├── .gitignore
+├── README.md
+└── requirements.txt              # fastapi, uvicorn, streamlit, python-multipart
