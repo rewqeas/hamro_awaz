@@ -32,5 +32,21 @@
             100
         ],
         "image_url": "/uploads/complaints/complaint_20250829_055724_801.png"
+    },
+    {
+        "id": 3,
+        "title": "waste ",
+        "content": "waste is unmanaged",
+        "author_id": 100,
+        "author_phone": "9812042131",
+        "municipality": "baneshwor",
+        "ward": "3",
+        "status": "open",
+        "created_at": "2025-08-29T08:07:25.232096",
+        "upvotes": 1,
+        "upvoted_by": [
+            100
+        ],
+        "image_url": "/uploads/complaints/complaint_20250829_080725_100.png"
     }
 ]
