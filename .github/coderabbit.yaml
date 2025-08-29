@@ -1,0 +1,55 @@
+# CodeRabbit configuration file
+
+# Basic settings
+language: en
+early_access: false
+
+# Reviews settings
+reviews:
+  request_changes_workflow: false
+  high_level_summary: true
+  poem_summary: false
+  review_comment_style: paragraph
+  path_filters:
+    - "**/*.py"
+    - "**/*.json"
+    - "**/*.md"
+  path_excludes:
+    - "**/__pycache__/**"
+    - "**/venv/**"
+    - "**/node_modules/**"
+
+# Chat settings
+chat:
+  auto_reply: true
+
+# Advanced settings
+model: claude-3
+context:
+  max_files_per_message: 20
+  max_file_size: 512KB
+
+# Thresholds for various metrics
+thresholds:
+  changes_size:
+    lines: 1000
+    max_files: 100
+
+# Label management
+labels:
+  auto_label: true
+  style: default
+  ignored:
+    - "dependencies"
+    - "documentation"
+
+# Security settings
+security:
+  review_secrets: true
+  review_dependencies: true
+
+# Documentation settings
+documentation:
+  generate_docs: true
+  update_readme: true
+  api_docs: true
