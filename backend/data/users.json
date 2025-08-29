@@ -78,6 +78,75 @@
         "city": "Kathmandu",
         "municipality": "Kathmandu Metropolitan",
         "ward": "Ward 10"
+    },
+    {
+        "id": 100,
+        "name": "aayush",
+        "phone": "9812042131",
+        "password": "test123",
+        "role": "citizen",
+        "city": "kathmandu",
+        "municipality": "baneshwor",
+        "ward": "3"
+    },
+    {
+        "id": 1,
+        "name": "rosNeupane",
+        "phone": "9812345678",
+        "password": "securePass123",
+        "role": "user",
+        "city": "Kathmandu",
+        "municipality": "Kathmandu Metropolitan",
+        "ward": "5"
+    },
+    {
+        "id": 700,
+        "name": "rajesh khanna",
+        "phone": "98214213123",
+        "password": "rajesh123",
+        "role": "staff",
+        "city": "kathmandu",
+        "municipality": "Kathmandu Metropolitan",
+        "ward": "3"
+    },
+    {
+        "id": 800,
+        "name": "rajesh bist",
+        "phone": "982142673123",
+        "password": "rajesh123",
+        "role": "staff",
+        "city": "Baneshwor",
+        "municipality": "baneshwor Municipality",
+        "ward": "3"
+    },
+    {
+        "id": 300,
+        "name": "rewqeas",
+        "phone": "980321341231",
+        "password": "rewq",
+        "role": "admin",
+        "city": "ktm",
+        "municipality": "baneshwor",
+        "ward": "2"
+    },
+    {
+        "id": 801,
+        "name": "ramesh puri",
+        "phone": "9841289518421",
+        "password": "pass1234",
+        "role": "citizen",
+        "city": "kathmandu",
+        "municipality": "baneshwor",
+        "ward": "10"
+    },
+    {
+        "id": 802,
+        "name": "raja ",
+        "phone": "984132874112",
+        "password": "secure@1234",
+        "role": "staff",
+        "city": "kathmandu",
+        "municipality": "kathmandu",
+        "ward": "3"
     }
-
 ]

@@ -1,54 +1,36 @@
 [
-  {
-    "id": 1,
-    "user_id": 1,
-    "title": "Dark alley with drug users",
-    "description": "This alley in Ward 3 Kathmandu is unsafe at night due to drug addicts.",
-    "category": "Security",
-    "city": "Kathmandu",
-    "municipality": "Kathmandu Metropolitan",
-    "ward": "Ward 3",
-    "image_url": "uploads/security1.png",
-    "upvotes": 5,
-    "status": "Low Alert"
-  },
-  {
-    "id": 2,
-    "user_id": 2,
-    "title": "Garbage not collected",
-    "description": "Ward 2 road in Kathmandu full of garbage for 3 days.",
-    "category": "Sanitation",
-    "city": "Kathmandu",
-    "municipality": "Kathmandu Metropolitan",
-    "ward": "Ward 2",
-    "image_url": "uploads/garbage1.png",
-    "upvotes": 2,
-    "status": "Low Alert"
-  },
-  {
-    "id": 3,
-    "user_id": 3,
-    "title": "Broken streetlight",
-    "description": "Streetlight in Ward 5 Lalitpur has been off for a week.",
-    "category": "Infrastructure",
-    "city": "Lalitpur",
-    "municipality": "Lalitpur Metropolitan",
-    "ward": "Ward 5",
-    "image_url": "uploads/streetlight1.png",
-    "upvotes": 4,
-    "status": "Low Alert"
-  },
-  {
-    "id": 4,
-    "user_id": 4,
-    "title": "Suspicious gathering",
-    "description": "Group of people consuming drugs near school area in Ward 4 Bhaktapur.",
-    "category": "Security",
-    "city": "Bhaktapur",
-    "municipality": "Bhaktapur Municipality",
-    "ward": "Ward 4",
-    "image_url": "uploads/security2.png",
-    "upvotes": 3,
-    "status": "Low Alert"
-  }
+    {
+        "id": 1,
+        "title": "dogs are dangerous",
+        "content": "dogs with rabies around",
+        "author_id": 801,
+        "author_phone": "9841289518421",
+        "municipality": "baneshwor",
+        "ward": "10",
+        "status": "open",
+        "created_at": "2025-08-29T05:56:24.125285",
+        "upvotes": 50,
+        "upvoted_by": [
+            801,
+            100
+        ],
+        "image_url": "/uploads/complaints/complaint_20250829_055624_801.png"
+    },
+    {
+        "id": 2,
+        "title": "dogs condition aren't check in the area",
+        "content": "dogs with rabies around",
+        "author_id": 801,
+        "author_phone": "9841289518421",
+        "municipality": "baneshwor",
+        "ward": "10",
+        "status": "working",
+        "created_at": "2025-08-29T05:57:24.033647",
+        "upvotes": 39,
+        "upvoted_by": [
+            801,
+            100
+        ],
+        "image_url": "/uploads/complaints/complaint_20250829_055724_801.png"
+    }
 ]

@@ -1,5 +1,185 @@
 [
-  {"id": 100, "name": "Kathmandu Municipality", "city": "Kathmandu", "municipality": "Kathmandu Metropolitan", "activities": []},
-  {"id": 101, "name": "Lalitpur Municipality", "city": "Lalitpur", "municipality": "Lalitpur Metropolitan", "activities": []},
-  {"id": 102, "name": "Bhaktapur Municipality", "city": "Bhaktapur", "municipality": "Bhaktapur Municipality", "activities": []}
+    {
+        "id": 100,
+        "name": "Kathmandu Municipality",
+        "city": "Kathmandu",
+        "municipality": "Kathmandu Metropolitan",
+        "activities": [
+            {
+                "complaint_id": null,
+                "title": "analyzing",
+                "action": "working",
+                "statement": "analyzing has started",
+                "timestamp": "2025-08-28T23:13:49.706473",
+                "by": 700,
+                "action_image": null
+            },
+            {
+                "complaint_id": 1,
+                "title": "Streetlight not working",
+                "action": "Marked as completed",
+                "statement": "our team just completed the work",
+                "timestamp": "2025-08-28T23:14:43.473313",
+                "by": 700,
+                "action_image": null
+            },
+            {
+                "complaint_id": null,
+                "title": "treatment of stray dogs",
+                "action": "working",
+                "statement": "sent the ventinarians to inject the dogs with rabies injection",
+                "timestamp": "2025-08-29T02:41:12.287843",
+                "by": 700,
+                "action_image": "/uploads/municipality/1756414572.280069_700.png"
+            },
+            {
+                "complaint_id": 8,
+                "title": "stray dogs might have rabies",
+                "action": "Marked as working",
+                "statement": "sent a team of ventnerians to the area",
+                "timestamp": "2025-08-29T02:44:32.486424",
+                "by": 700,
+                "action_image": "/uploads/municipality/1756414772.485905_700.png"
+            },
+            {
+                "complaint_id": null,
+                "title": "dog rescure",
+                "action": "working",
+                "statement": "a team is sent to rescue dogs in the area",
+                "timestamp": "2025-08-29T06:59:06.913396",
+                "by": 700,
+                "action_image": "/uploads/municipality/1756430046.912438_700.png"
+            },
+            {
+                "complaint_id": null,
+                "title": "dog rescure",
+                "action": "working",
+                "statement": "a team is sent to rescue dogs in the area",
+                "timestamp": "2025-08-29T06:59:25.228754",
+                "by": 700,
+                "action_image": "/uploads/municipality/1756430065.227969_700.png"
+            },
+            {
+                "complaint_id": null,
+                "title": "dog rescure",
+                "action": "working",
+                "statement": "a team is sent to rescue dogs in the area",
+                "timestamp": "2025-08-29T07:01:46.741361",
+                "by": 700,
+                "action_image": "/uploads/municipality/1756430206.74026_700.png"
+            }
+        ]
+    },
+    {
+        "id": 101,
+        "name": "Lalitpur Municipality",
+        "city": "Lalitpur",
+        "municipality": "Lalitpur Metropolitan",
+        "activities": []
+    },
+    {
+        "id": 102,
+        "name": "Bhaktapur Municipality",
+        "city": "Bhaktapur",
+        "municipality": "Bhaktapur Municipality",
+        "activities": []
+    },
+    {
+        "id": 103,
+        "name": "Baneshwor Municipality",
+        "city": "Kathmandu",
+        "municipality": "Baneshwor Municipality",
+        "activities": [
+            {
+                "complaint_id": 5,
+                "title": "muddy road",
+                "action": "Marked as working",
+                "statement": "sent a team to work",
+                "timestamp": "2025-08-28T23:09:02.776255",
+                "by": 800,
+                "action_image": null
+            },
+            {
+                "complaint_id": null,
+                "title": "treatment of stray dogs",
+                "action": "working",
+                "statement": "sent the ventinarians to inject the dogs with rabies injection",
+                "timestamp": "2025-08-29T02:37:24.781697",
+                "by": 800,
+                "action_image": "/uploads/municipality/1756414344.78067_800.png"
+            },
+            {
+                "complaint_id": 6,
+                "title": "dog's are dangerous",
+                "action": "Marked as working",
+                "statement": "sent a team of surgens to check the status of dogs",
+                "timestamp": "2025-08-29T02:53:19.537239",
+                "by": 800,
+                "action_image": "/uploads/municipality/1756415299.535955_800.png"
+            },
+            {
+                "complaint_id": 2,
+                "title": "dogs condition aren't check in the area",
+                "action": "Marked as working",
+                "statement": "a tean has been sent",
+                "timestamp": "2025-08-29T07:06:49.346568",
+                "by": 800,
+                "action_image": "/uploads/municipality/1756430509.346097_800.png"
+            },
+            {
+                "complaint_id": 2,
+                "title": "dogs condition aren't check in the area",
+                "action": "Marked as working",
+                "statement": "a tean has been sent",
+                "timestamp": "2025-08-29T07:12:01.381813",
+                "by": 800,
+                "action_image": "/uploads/municipality/1756430821.379944_800.png"
+            },
+            {
+                "complaint_id": null,
+                "title": "work completed",
+                "action": "working",
+                "statement": "team has completed the work",
+                "timestamp": "2025-08-29T07:14:24.912423",
+                "by": 800,
+                "action_image": "/uploads/municipality/1756430964.91067_800.png"
+            },
+            {
+                "complaint_id": null,
+                "title": "stray dogs safety",
+                "action": "completed",
+                "statement": "",
+                "timestamp": "2025-08-29T07:51:56.024360",
+                "by": 800,
+                "action_image": "/uploads/municipality/1756433216.023198_800.png"
+            },
+            {
+                "complaint_id": null,
+                "title": "stray dogs safety",
+                "action": "completed",
+                "statement": "",
+                "timestamp": "2025-08-29T07:52:12.369431",
+                "by": 800,
+                "action_image": "/uploads/municipality/1756433232.367696_800.png"
+            },
+            {
+                "complaint_id": null,
+                "title": "stray dogs safety",
+                "action": "completed",
+                "statement": "",
+                "timestamp": "2025-08-29T07:52:13.110566",
+                "by": 800,
+                "action_image": "/uploads/municipality/1756433233.10928_800.png"
+            },
+            {
+                "complaint_id": null,
+                "title": "stray dogs safety",
+                "action": "completed",
+                "statement": "",
+                "timestamp": "2025-08-29T07:52:14.635875",
+                "by": 800,
+                "action_image": "/uploads/municipality/1756433234.635_800.png"
+            }
+        ]
+    }
 ]

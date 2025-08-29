@@ -1,4 +1,4 @@
-from utils.file_handler import load_json, save_json
+from .file_handler import load_json, save_json
 
 USERS_FILE = 'users.json'
 
@@ -43,7 +43,7 @@ def get_user_by_id(user_id:int):
     users = load_json(USERS_FILE)
 
     for user in users:
-        if user['phone'] == user_id:
+        if user['id'] == user_id:
             return user
         
     return None
@@ -65,11 +65,10 @@ def login_user(phone:str, password:str)->dict:
     for user in users:
         if user['phone'] == phone:
             if user['password'] == password:
-                return user #login successful
-            
+                return user # login successful
             else:
                 raise ValueError("Incorrect password")
-            
-        raise ValueError('Phone number not registered')
+    raise ValueError("Phone number not registered")
+
     
 
