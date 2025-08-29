@@ -1,609 +1,496 @@
 import streamlit as st
 import requests
+import json
+from datetime import datetime
+import time
 
-API_URL = "http://127.0.0.1:8000"   # FastAPI backend
+# Configuration
+API_BASE_URL = "http://localhost:8000"
 
-st.set_page_config(page_title="Hamro Aawaz - Citizen-Municipality App", layout="wide")
-
-# ------------------- SESSION STATE ------------------- #
-# Initialize session state variables
-for key, default_value in {
-    "token": None,
-    "role": None,
-    "user_id": None,
-    "municipality": None,
-    "complaints_page": 0,
-    "activities_page": 0,
-    "items_per_page": 5,
-    "sort_by": "newest",
-    "filter_by": "all",
-    "search_query": "",
-    "loading": False,
-    "last_refresh": None,
-    "cached_complaints": None,
-    "cached_activities": None,
-    "cache_duration": 60,  # seconds
-    "show_success": False,
-    "success_message": "",
-    "active_tab": "green"
-}.items():
-    if key not in st.session_state:
-        st.session_state[key] = default_value
-
-# CSS for loading animation and notifications
-st.markdown("""
-<style>
-    @keyframes pulse {
-        0% { opacity: 1; }
-        50% { opacity: 0.3; }
-        100% { opacity: 1; }
-    }
-    .loading {
-        animation: pulse 1.5s infinite;
-    }
-    .success-message {
-        padding: 1rem;
-        border-radius: 0.5rem;
-        background-color: #10b981;
-        color: white;
-        margin: 1rem 0;
-        animation: fadeOut 3s forwards;
-    }
-    @keyframes fadeOut {
-        0% { opacity: 1; }
-        90% { opacity: 1; }
-        100% { opacity: 0; visibility: hidden; }
-    }
-    .complaint-card {
-        transition: transform 0.2s;
-    }
-    .complaint-card:hover {
-        transform: translateY(-2px);
-    }
-    .tab-content {
-        padding: 1rem;
-        border-radius: 0.5rem;
-        background: rgba(255, 255, 255, 0.05);
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# ------------------- HELPERS ------------------- #
-def login(phone, password):
-    try:
-        resp = requests.post(f"{API_URL}/auth/login", json={"phone": phone, "password": password})
-        if resp.status_code == 200:
-            data = resp.json()
-            token = data.get("access_token")
-            headers = {"Authorization": f"Bearer {token}"}
-            user_resp = requests.get(f"{API_URL}/auth/me", headers=headers)
-            if user_resp.status_code == 200:
-                user_data = user_resp.json()["current_user"]
-                return token, user_data["role"], user_data["id"]
-        st.error(resp.json().get("detail", "Invalid credentials"))
-    except Exception as e:
-        st.error(f"Error: {e}")
-    return None, None, None
-
-def register_user(name, phone, password, role, city, municipality, ward):
-    try:
-        users_resp = requests.get(f"{API_URL}/auth/users")
-        if users_resp.status_code == 200:
-            users = users_resp.json()
-            new_id = max([u.get("id", 0) for u in users], default=0) + 1
-        else:
-            new_id = 1000
-
-        resp = requests.post(f"{API_URL}/auth/register", json={
-            "id": new_id,
-            "name": name,
-            "phone": phone,
-            "password": password,
-            "role": role,
-            "city": city,
-            "municipality": municipality,
-            "ward": ward
-        })
-        if resp.status_code == 200:
-            st.success("Registration successful! Please login.")
-        else:
-            st.error(resp.json().get("detail", "Registration failed"))
-    except Exception as e:
-        st.error(f"Error: {e}")
-
-def logout():
+# Initialize session state
+if 'token' not in st.session_state:
     st.session_state.token = None
-    st.session_state.role = None
-    st.session_state.user_id = None
-    st.success("Logged out!")
+if 'user' not in st.session_state:
+    st.session_state.user = None
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
 
-def submit_complaint(title, content, image_file=None):
-    headers = {"Authorization": f"Bearer {st.session_state.token}"}
-    files, data = {}, {"title": title, "content": content}
-    if image_file:
-        files["image"] = (image_file.name, image_file.getvalue(), image_file.type)
-    return requests.post(f"{API_URL}/complaints/", data=data, files=files, headers=headers)
+def get_headers():
+    """Get headers with authentication token"""
+    if st.session_state.token:
+        return {"Authorization": f"Bearer {st.session_state.token}"}
+    return {}
 
-def fetch_complaints():
-    headers = {"Authorization": f"Bearer {st.session_state.token}"}
-    resp = requests.get(f"{API_URL}/complaints/", headers=headers)
-    return resp.json() if resp.status_code == 200 else []
+def make_request(method, endpoint, data=None, files=None, headers=None):
+    """Make API request with error handling"""
+    try:
+        url = f"{API_BASE_URL}{endpoint}"
+        if headers is None:
+            headers = get_headers()
+        
+        if method == "GET":
+            response = requests.get(url, headers=headers)
+        elif method == "POST":
+            if files:
+                response = requests.post(url, data=data, files=files, headers=headers)
+            else:
+                response = requests.post(url, json=data, headers=headers)
+        
+        if response.status_code == 200:
+            return True, response.json()
+        else:
+            return False, response.json().get('detail', 'Unknown error')
+    except Exception as e:
+        return False, str(e)
 
-def upvote_complaint(complaint_id):
-    headers = {"Authorization": f"Bearer {st.session_state.token}"}
-    return requests.post(f"{API_URL}/complaints/{complaint_id}/upvote", headers=headers)
+def login_user(phone, password):
+    """Login user and store token"""
+    success, result = make_request("POST", "/auth/login", {"phone": phone, "password": password}, headers={})
+    if success:
+        st.session_state.token = result['access_token']
+        st.session_state.logged_in = True
+        
+        # Get user info
+        success, user_info = make_request("GET", "/auth/me")
+        if success:
+            st.session_state.user = user_info['current_user']
+        return True, "Login successful"
+    return False, result
 
-def unvote_complaint(complaint_id):
-    headers = {"Authorization": f"Bearer {st.session_state.token}"}
-    return requests.post(f"{API_URL}/complaints/{complaint_id}/unvote", headers=headers)
+def logout_user():
+    """Logout user and clear session"""
+    st.session_state.token = None
+    st.session_state.user = None
+    st.session_state.logged_in = False
+    st.rerun()
 
-def fetch_municipality_activities():
-    headers = {"Authorization": f"Bearer {st.session_state.token}"}
-    resp = requests.get(f"{API_URL}/municipality/activities", headers=headers)
-    return resp.json() if resp.status_code == 200 else []
+def register_user(user_data):
+    """Register new user"""
+    return make_request("POST", "/auth/register", user_data, headers={})
 
-def get_all_municipalities():
-    headers = {"Authorization": f"Bearer {st.session_state.token}"}
-    resp = requests.get(f"{API_URL}/municipality/", headers=headers)
-    return resp.json() if resp.status_code == 200 else []
+def get_next_user_id():
+    """Get next available user ID"""
+    success, users = make_request("GET", "/auth/users")
+    if success and users:
+        return max(user['id'] for user in users) + 1
+    return 1001
 
-def post_municipality_action(title, action, statement=None, image_file=None):
-    headers = {"Authorization": f"Bearer {st.session_state.token}"}
-    files = {}
-    data = {
-        "title": title,
-        "action": action,
-        "statement": statement
-    }
-    if image_file:
-        files["image"] = (image_file.name, image_file.getvalue(), image_file.type)
-    return requests.post(
-        f"{API_URL}/municipality/post-action",
-        data=data,
-        files=files,
-        headers=headers
-    )
+# Page configuration
+st.set_page_config(
+    page_title="Hamro Aawaz - Complaint Box",
+    page_icon="📢",
+    layout="wide"
+)
 
-def update_complaint_status(complaint_id, status, statement=None, image_file=None):
-    headers = {"Authorization": f"Bearer {st.session_state.token}"}
-    files = {}
-    data = {
-        "complaint_id": complaint_id,
-        "status": status,
-        "statement": statement
-    }
-    if image_file:
-        files["image"] = (image_file.name, image_file.getvalue(), image_file.type)
-    return requests.post(
-        f"{API_URL}/municipality/update-complaint-status",
-        data=data,
-        files=files,
-        headers=headers
-    )
-
-def calculate_municipality_score(municipalities):
-    scores = {m["municipality"]: 0 for m in municipalities}
-    for muni in municipalities:
-        for activity in muni.get("activities", []):
-            if activity.get("action") == "Marked as completed":
-                scores[muni["municipality"]] += 2
-            elif activity.get("action") in ["working", "Marked as working"]:
-                scores[muni["municipality"]] += 1
-    return scores
-
-def display_complaint_card(c, show_voting=True, show_status=False):
-    """Display a complaint card with consistent styling"""
-    status_color = "green" if c.get('status') == "completed" else "orange" if c.get('status') == "working" else "#333"
-    upvotes = c.get('upvotes', 0)
-    
-    st.markdown(f"""
-    <div style='background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%); 
-                border: 2px solid {status_color}; 
-                padding: 15px; 
-                border-radius: 10px; 
-                margin: 10px 0;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.3);'>
-        <h4 style='color: white; margin-bottom: 8px;'>{c['title']}</h4>
-        <p style='color: #cccccc; margin-bottom: 10px;'>{c['content']}</p>
-        <div style='display: flex; justify-content: space-between; align-items: center;'>
-            <small style='color: #888;'>📅 {c['created_at'][:10]} | 🏠 {c.get('municipality', 'Unknown')} - Ward {c.get('ward', 'N/A')}</small>
-            <span style='background: #ff6b6b; color: white; padding: 4px 8px; border-radius: 15px; font-size: 12px;'>👍 {upvotes}</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if c.get("image_url"):
-        try:
-            img_url = f"{API_URL}{c['image_url']}"
-            st.image(img_url, caption="Complaint Image", use_container_width=True)
-        except Exception as e:
-            st.error(f"Error loading image: {str(e)}")
-    
-    if show_voting and st.session_state.role == "citizen":
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button(f"👍 Upvote", key=f"up_{c['id']}_{show_status}"):
-                resp = upvote_complaint(c["id"])
-                if resp.status_code == 200:
-                    st.success("Upvoted!")
-                    st.rerun()
-        with col2:
-            if st.button("👎 Unvote", key=f"un_{c['id']}_{show_status}"):
-                resp = unvote_complaint(c["id"])
-                if resp.status_code == 200:
-                    st.info("Unvoted")
-                    st.rerun()
-    
-    if show_status and st.session_state.role == "staff":
-        with st.expander(f"Update Status - {c['title']}"):
-            status = st.selectbox("Update Status", ["working", "completed"], key=f"status_{c['id']}")
-            statement = st.text_area("Add Statement", key=f"stmt_{c['id']}")
-            image_file = st.file_uploader("Upload Action Image", type=["jpg", "jpeg", "png"], key=f"img_{c['id']}")
-            if st.button("Update Status", key=f"update_{c['id']}"):
-                resp = update_complaint_status(c['id'], status, statement, image_file)
-                if resp.status_code == 200:
-                    st.success("Status updated successfully!")
-                    st.rerun()
-                else:
-                    st.error(f"Error: {resp.text}")
-
-def display_activity_card(activity):
-    """Display a municipality activity card"""
-    # Define status color based on action
-    action_color = "#10b981" if "completed" in activity.get('action', '').lower() else "#f59e0b" if "working" in activity.get('action', '').lower() else "#60a5fa"
-    
-    st.markdown(f"""
-    <div style='background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); 
-                border: 2px solid {action_color}; 
-                padding: 15px; 
-                border-radius: 10px; 
-                margin: 10px 0;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.3);'>
-        <div style='display: flex; justify-content: space-between; align-items: start;'>
-            <h4 style='color: white; margin-bottom: 8px; flex: 1;'>{activity['title']}</h4>
-            <span style='background: {action_color}; color: white; padding: 4px 8px; border-radius: 15px; font-size: 12px;'>
-                {activity.get('action', 'Update')}
-            </span>
-        </div>
-        {f"<p style='color: #e0f2fe; margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 5px;'>{activity['statement']}</p>" if activity.get('statement') else ''}
-        <div style='display: flex; justify-content: space-between; align-items: center; margin-top: 10px;'>
-            <small style='color: #81d4fa;'>📅 {activity['timestamp'][:10]}</small>
-            <small style='color: #81d4fa; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px;'>
-                🏛️ {activity.get('municipality', 'Unknown')}
-            </small>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Display image after the card if it exists
-    if activity.get("action_image"):
-        try:
-            img_url = f"{API_URL}{activity['action_image']}"
-            # Instead of downloading the image, use the URL directly
-            st.image(img_url, caption="Activity Image", use_container_width=True)
-        except Exception as e:
-            st.error(f"Error loading image: {str(e)}")
-            st.write(f"Image URL attempted: {img_url}")
-    
-    if activity.get("action_image"):
-        try:
-            img_url = f"{API_URL}{activity['action_image']}"
-            st.image(img_url, caption="Activity Image", use_container_width=True)
-        except Exception as e:
-            st.error(f"Error loading image: {str(e)}")
-
-# ------------------- MAIN UI ------------------- #
-# Custom CSS for dark theme
+# Custom CSS
+# Custom CSS
 st.markdown("""
 <style>
-    .main {
-        background-color: #1a1a2e;
-        color: white;
-    }
-    .stApp {
-        background: linear-gradient(135deg, #0f0f23 0%, #16213e 100%);
-        color: white;
-    }
-    h1, h2, h3, h4, h5, h6 {
-        color: white !important;
-    }
-    .alert-section {
-        margin: 20px 0;
-        padding: 20px;
-        border-radius: 15px;
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-    }
+.complaint-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 10px 0;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    color: #333;
+}
+.status-open { color: #ff4757; font-weight: bold; background: #fff5f5; padding: 4px 8px; border-radius: 4px; }
+.status-working { color: #ffa502; font-weight: bold; background: #fff8f0; padding: 4px 8px; border-radius: 4px; }
+.status-completed { color: #2ed573; font-weight: bold; background: #f0fff4; padding: 4px 8px; border-radius: 4px; }
+.upvote-count { color: #1976d2; font-weight: bold; }
+.municipality-post {
+    border-left: 4px solid #2196f3;
+    background: #f8f9fa;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 5px;
+    color: #333;
+}
 </style>
 """, unsafe_allow_html=True)
 
-if not st.session_state.token:
-    # Login/Register Interface with Nepali support
-    st.markdown("""
-    <div style='text-align: center; padding: 50px 0;'>
-        <h1 style='font-size: 3rem; background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); 
-                   -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px;'>
-            🗣️ हाम्रो आवाज
-        </h1>
-        <p style='font-size: 1.2rem; color: #888; margin-bottom: 20px;'>
-            नागरिक र नगरपालिकाको आवाज
-        </p>
-        <p style='font-size: 1rem; color: #666; margin-bottom: 40px;'>
-            A Platform for Citizens and Municipality Collaboration
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    tab1, tab2 = st.tabs(["🔑 लग-इन / Login", "📝 दर्ता / Register"])
-    with tab1:
-        st.subheader("Login")
-        phone = st.text_input("Phone Number", key="login_phone")
-        password = st.text_input("Password", type="password", key="login_pass")
-        if st.button("Login", use_container_width=True):
-            token, role, user_id = login(phone, password)
-            if token:
-                st.session_state.token = token
-                st.session_state.role = role
-                st.session_state.user_id = user_id
-                st.rerun()
+# Main header
+st.title("📢 Hamro Aawaz")
+st.markdown("*Voice of the People - Digital Complaint Box System*")
 
-    with tab2:
-        st.subheader("Register New Account")
-        with st.form("register_form"):
-            name = st.text_input("Full Name")
-            phone = st.text_input("Phone Number")
+# Authentication check
+if not st.session_state.logged_in:
+    # Authentication tabs
+    auth_tab1, auth_tab2 = st.tabs(["🔐 Login", "📝 Register"])
+    
+    with auth_tab1:
+        st.header("Login")
+        with st.form("login_form"):
+            phone = st.text_input("Phone Number", placeholder="9841234567")
             password = st.text_input("Password", type="password")
-            role = st.selectbox("Role", ["citizen", "staff"])
-            city = st.text_input("City")
-            municipality = st.text_input("Municipality")
-            ward = st.text_input("Ward Number")
-            if st.form_submit_button("Register", use_container_width=True):
-                register_user(name, phone, password, role, city, municipality, ward)
+            submit = st.form_submit_button("Login")
+            
+            if submit:
+                if phone and password:
+                    success, message = login_user(phone, password)
+                    if success:
+                        st.success(message)
+                        st.rerun()
+                    else:
+                        st.error(f"Login failed: {message}")
+                else:
+                    st.error("Please fill all fields")
+    
+    with auth_tab2:
+        st.header("Register New Account")
+        with st.form("register_form"):
+            col1, col2 = st.columns(2)
+            with col1:
+                name = st.text_input("Full Name", placeholder="John Doe")
+                phone = st.text_input("Phone Number", placeholder="9841234567")
+                password = st.text_input("Password", type="password")
+            
+            with col2:
+                role = st.selectbox("Role", ["citizen", "staff"])
+                city = st.text_input("City", placeholder="Kathmandu")
+                municipality = st.text_input("Municipality", placeholder="Kathmandu Metropolitan City")
+                ward = st.text_input("Ward", placeholder="Ward 1")
+            
+            submit = st.form_submit_button("Register")
+            
+            if submit:
+                if all([name, phone, password, city, municipality, ward]):
+                    user_data = {
+                        "id": get_next_user_id(),
+                        "name": name,
+                        "phone": phone,
+                        "password": password,
+                        "role": role,
+                        "city": city,
+                        "municipality": municipality,
+                        "ward": ward
+                    }
+                    success, message = register_user(user_data)
+                    if success:
+                        st.success("Registration successful! Please login.")
+                    else:
+                        st.error(f"Registration failed: {message}")
+                else:
+                    st.error("Please fill all fields")
 
 else:
-    # Main Dashboard Header
-    col1, col2 = st.columns([0.8, 0.2])
-    with col1:
-        st.markdown("""
-        <div style='text-align: center; padding: 20px 0;'>
-            <h1 style='font-size: 2.5rem; background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); 
-                       -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 5px;'>
-                🗣️ Hamro Aawaz
-            </h1>
-            <p style='font-size: 1rem; color: #888;'>
-                हाम्रो आवाज - Our Voice for Better Community
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+    # Main application for logged-in users
     
-    with col2:
-        st.markdown(f"<p style='color: #888; text-align: right; padding-top: 20px;'>Logged in as: <strong>{st.session_state.role}</strong></p>", unsafe_allow_html=True)
-        if st.button("Logout", use_container_width=True):
-            logout()
+    # Sidebar with user info
+    with st.sidebar:
+        st.markdown(f"### Welcome, {st.session_state.user.get('sub', 'User')}!")
+        st.markdown(f"**Role:** {st.session_state.user.get('role', 'N/A').title()}")
+        st.markdown(f"**ID:** {st.session_state.user.get('id', 'N/A')}")
+        
+        if st.button("🚪 Logout", use_container_width=True):
+            logout_user()
+    
+    # Main tabs
+    tab1, tab2, tab3, tab4 = st.tabs(["📝 Complaints", "🏛️ Municipality", "👤 Profile", "📊 Dashboard"])
+    
+    with tab1:
+        st.header("Complaints Management")
+        
+        # Create new complaint section
+        with st.expander("➕ Submit New Complaint", expanded=False):
+            with st.form("complaint_form"):
+                title = st.text_input("Title", placeholder="Brief description of the issue")
+                content = st.text_area("Content", placeholder="Detailed description of the complaint...")
+                image = st.file_uploader("Upload Image (Optional)", type=['jpg', 'jpeg', 'png'])
+                
+                submit = st.form_submit_button("Submit Complaint")
+                
+                if submit:
+                    if title and content:
+                        # Prepare form data
+                        data = {"title": title, "content": content}
+                        files = {"image": image} if image else None
+                        
+                        success, result = make_request("POST", "/complaints/", data, files)
+                        if success:
+                            st.success("Complaint submitted successfully!")
+                            st.rerun()
+                        else:
+                            st.error(f"Failed to submit complaint: {result}")
+                    else:
+                        st.error("Please fill in title and content")
+        
+        st.markdown("---")
+        
+        # Display all complaints
+        st.subheader("All Complaints")
+        success, complaints = make_request("GET", "/complaints/")
+        
+        if success and complaints:
+            for complaint in complaints:
+                with st.container():
+                    st.markdown(f"""
+                    <div class="complaint-card">
+                        <h3>{complaint['title']}</h3>
+                        <p><strong>Location:</strong> {complaint['municipality']}, {complaint['ward']}</p>
+                        <p>{complaint['content']}</p>
+                        <p><strong>Status:</strong> <span class="status-{complaint['status']}">{complaint['status'].upper()}</span> | 
+                        <strong>Created:</strong> {complaint['created_at'][:19]}</p>
+                    </div>
+""", unsafe_allow_html=True)
+                    
+                    col1, col2, col3 = st.columns([2, 1, 1])
+                    
+                    with col1:
+                        if complaint.get('image_url'):
+                            st.image(f"{API_BASE_URL}{complaint['image_url']}", width=200)
+                    
+                    with col2:
+                        st.markdown(f"**Upvotes:** {complaint['upvotes']}")
+                        
+                        # Check if user already upvoted
+                        user_upvoted = st.session_state.user['id'] in complaint.get('upvoted_by', [])
+                        
+                        if user_upvoted:
+                            if st.button(f"👎 Unvote", key=f"unvote_{complaint['id']}"):
+                                success, result = make_request("POST", f"/complaints/{complaint['id']}/unvote")
+                                if success:
+                                    st.success("Removed upvote!")
+                                    st.rerun()
+                                else:
+                                    st.error(f"Failed: {result}")
+                        else:
+                            if st.button(f"👍 Upvote", key=f"upvote_{complaint['id']}"):
+                                success, result = make_request("POST", f"/complaints/{complaint['id']}/upvote")
+                                if success:
+                                    st.success("Upvoted!")
+                                    st.rerun()
+                                else:
+                                    st.error(f"Failed: {result}")
+                    
+                    with col3:
+                        if st.session_state.user.get('role') == 'staff':
+                            with st.popover("🛠️ Staff Actions"):
+                                new_status = st.selectbox("Update Status", 
+                                                        ["open", "working", "completed"], 
+                                                        key=f"status_{complaint['id']}")
+                                statement = st.text_area("Statement", 
+                                                        placeholder="Add update message...",
+                                                        key=f"statement_{complaint['id']}")
+                                action_image = st.file_uploader("Action Image", 
+                                                              type=['jpg', 'jpeg', 'png'],
+                                                              key=f"action_img_{complaint['id']}")
+                                
+                                if st.button("Update Status", key=f"update_{complaint['id']}"):
+                                    data = {
+                                        "complaint_id": complaint['id'],
+                                        "status": new_status,
+                                        "statement": statement
+                                    }
+                                    files = {"image": action_image} if action_image else None
+                                    
+                                    success, result = make_request("POST", "/municipality/update-complaint-status", data, files)
+                                    if success:
+                                        st.success("Status updated!")
+                                        st.rerun()
+                                    else:
+                                        st.error(f"Failed: {result}")
+                    
+                    st.markdown("---")
+        else:
+            st.info("No complaints found or failed to load complaints.")
+    
+    with tab2:
+        st.header("Municipality Feed")
+        
+        # Staff post creation
+        if st.session_state.user.get('role') == 'staff':
+            with st.expander("➕ Post Municipality Update", expanded=False):
+                with st.form("municipality_post_form"):
+                    post_title = st.text_input("Title", placeholder="Infrastructure Project Update")
+                    action = st.selectbox("Action Type", ["working", "completed", "planned", "announcement"])
+                    statement = st.text_area("Statement", placeholder="Describe the municipality activity...")
+                    post_image = st.file_uploader("Upload Image (Optional)", type=['jpg', 'jpeg', 'png'])
+                    
+                    submit_post = st.form_submit_button("Post Update")
+                    
+                    if submit_post:
+                        if post_title and statement:
+                            data = {
+                                "title": post_title,
+                                "action": action,
+                                "statement": statement
+                            }
+                            files = {"image": post_image} if post_image else None
+        
+                            success, result = make_request("POST", "/municipality/post-action", data, files)
+                            if success:
+                                st.success("Municipality post created successfully!")
+                                st.rerun()
+                            else:
+                                st.error(f"Failed to create post: {result}")
+                        else:
+                            st.error("Please fill in title and statement")
+        
+        st.markdown("---")
+        
+        # Display municipality activities
+        st.subheader("Recent Municipality Activities")
+        success, activities = make_request("GET", "/municipality/activities")
+        
+        if success and activities:
+            for activity in activities:
+                st.markdown(f"""
+                <div class="municipality-post">
+                    <h4>{activity['title']}</h4>
+                    <p><strong>Action:</strong> {activity['action'].title()} | 
+                       <strong>Municipality:</strong> {activity.get('municipality', 'N/A')}</p>
+                    <p>{activity['statement']}</p>
+                    <p><strong>Posted:</strong> {activity['timestamp'][:19]} | 
+                       <strong>By Staff ID:</strong> {activity['by']}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                if activity.get('action_image'):
+                    st.image(f"{API_BASE_URL}{activity['action_image']}", width=300)
+                
+                st.markdown("---")
+        else:
+            st.info("No municipality activities found.")
+        
+        # Display municipality data
+        st.subheader("Municipality Overview")
+        success, municipalities = make_request("GET", "/municipality/")
+        
+        if success and municipalities:
+            for muni in municipalities:
+                st.markdown(f"### {muni['municipality']} - {muni['city']}")
+                if muni.get('activities'):
+                    for act in muni['activities'][-3:]:  # Show last 3 activities
+                        st.markdown(f"""
+                        <div class="municipality-post">
+                            <p><strong>{act['title']}</strong></p>
+                            <p>{act['statement']}</p>
+                            <small>Status: {act['action']} | {act['timestamp'][:19]}</small>
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.info("No recent activities")
+    
+    with tab3:
+        st.header("User Profile")
+        
+        if st.session_state.user:
+            success, user_details = make_request("GET", "/auth/me")
+            if success:
+                user_info = user_details['current_user']
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown(f"**Phone:** {user_info.get('sub', 'N/A')}")
+                    st.markdown(f"**Role:** {user_info.get('role', 'N/A').title()}")
+                    st.markdown(f"**User ID:** {user_info.get('id', 'N/A')}")
+                
+                # Get full user details from users endpoint
+                success, all_users = make_request("GET", "/auth/users")
+                if success:
+                    current_user_details = next((u for u in all_users if u['id'] == user_info['id']), None)
+                    if current_user_details:
+                        with col2:
+                            st.markdown(f"**Name:** {current_user_details.get('name', 'N/A')}")
+                            st.markdown(f"**City:** {current_user_details.get('city', 'N/A')}")
+                            st.markdown(f"**Municipality:** {current_user_details.get('municipality', 'N/A')}")
+                            st.markdown(f"**Ward:** {current_user_details.get('ward', 'N/A')}")
+        
+        st.markdown("---")
+        
+        # User's complaints
+        st.subheader("My Complaints")
+        success, all_complaints = make_request("GET", "/complaints/")
+        
+        if success and all_complaints:
+            user_complaints = [c for c in all_complaints if c['author_id'] == st.session_state.user['id']]
+            
+            if user_complaints:
+                for complaint in user_complaints:
+                    st.markdown(f"""
+                    <div class="complaint-card">
+                        <h4>{complaint['title']}</h4>
+                        <p>{complaint['content']}</p>
+                        <p><strong>Status:</strong> <span class="status-{complaint['status']}">{complaint['status'].upper()}</span> | 
+                           <strong>Upvotes:</strong> <span class="upvote-count">{complaint['upvotes']}</span></p>
+                        <p><strong>Created:</strong> {complaint['created_at'][:19]}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    if complaint.get('image_url'):
+                        st.image(f"{API_BASE_URL}{complaint['image_url']}", width=200)
+            else:
+                st.info("You haven't submitted any complaints yet.")
+        
+    with tab4:
+        st.header("Dashboard & Statistics")
+        
+        # Get data for dashboard
+        success, all_complaints = make_request("GET", "/complaints/")
+        success_muni, activities = make_request("GET", "/municipality/activities")
+        
+        if success and all_complaints:
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("Total Complaints", len(all_complaints))
+            
+            with col2:
+                open_complaints = len([c for c in all_complaints if c['status'] == 'open'])
+                st.metric("Open Complaints", open_complaints)
+            
+            with col3:
+                working_complaints = len([c for c in all_complaints if c['status'] == 'working'])
+                st.metric("In Progress", working_complaints)
+            
+            with col4:
+                completed_complaints = len([c for c in all_complaints if c['status'] == 'completed'])
+                st.metric("Completed", completed_complaints)
+            
+            # Status distribution
+            st.subheader("Complaint Status Distribution")
+            status_data = {"Open": open_complaints, "Working": working_complaints, "Completed": completed_complaints}
+            st.bar_chart(status_data)
+            
+            # Recent complaints
+            st.subheader("Recent Complaints")
+            recent_complaints = sorted(all_complaints, key=lambda x: x['created_at'], reverse=True)[:5]
+            
+            for complaint in recent_complaints:
+                st.markdown(f"""
+                <div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0; border-radius: 5px;">
+                    <strong>{complaint['title']}</strong><br>
+                    <small>Status: {complaint['status']} | Upvotes: {complaint['upvotes']} | 
+                    Created: {complaint['created_at'][:19]}</small>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        if success_muni and activities:
+            st.subheader("Recent Municipality Activities")
+            recent_activities = sorted(activities, key=lambda x: x['timestamp'], reverse=True)[:5]
+            
+            for activity in recent_activities:
+                st.markdown(f"""
+                <div class="municipality-post">
+                    <strong>{activity['title']}</strong><br>
+                    <p>{activity['statement']}</p>
+                    <small>Action: {activity['action']} | Posted: {activity['timestamp'][:19]}</small>
+                </div>
+                """, unsafe_allow_html=True)
+
+# Footer
+st.markdown("---")
+st.markdown("*Hamro Aawaz - Empowering citizens to make their voices heard* 🇳🇵")
+
+# Auto-refresh for real-time updates (optional)
+if st.session_state.logged_in:
+    # Add a refresh button
+    col1, col2, col3 = st.columns([1, 1, 2])
+    with col1:
+        if st.button("🔄 Refresh Data"):
             st.rerun()
     
-    # Navigation Menu with Nepali translations
-    st.markdown("""
-    <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px;'>
-        <h3 style='text-align: center; color: #fff; margin-bottom: 15px;'>मुख्य मेनु / Main Menu</h3>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("""
-        <div style='background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin: 5px;'>
-            <h4 style='color: #fff; margin-bottom: 10px;'>गुनासो श्रेणीहरू / Complaint Categories</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("🔴 उच्च प्राथमिकता / High Priority", use_container_width=True, type="secondary"):
-            st.markdown('<script>document.getElementById("red-alert").scrollIntoView();</script>', unsafe_allow_html=True)
-        if st.button("🟠 मध्यम प्राथमिकता / Medium Priority", use_container_width=True, type="secondary"):
-            st.markdown('<script>document.getElementById("orange-alert").scrollIntoView();</script>', unsafe_allow_html=True)
-        if st.button("🟢 सामान्य प्राथमिकता / Normal Priority", use_container_width=True, type="secondary"):
-            st.markdown('<script>document.getElementById("green-alert").scrollIntoView();</script>', unsafe_allow_html=True)
-    
     with col2:
-        st.markdown("""
-        <div style='background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin: 5px;'>
-            <h4 style='color: #fff; margin-bottom: 10px;'>अन्य जानकारी / Other Information</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("�️ नगरपालिका अपडेट / Municipality Updates", use_container_width=True, type="secondary"):
-            st.markdown('<script>document.getElementById("muni-updates").scrollIntoView();</script>', unsafe_allow_html=True)
-        if st.button("🏆 उत्कृष्ट नगरपालिका / Top Municipalities", use_container_width=True, type="secondary"):
-            st.markdown('<script>document.getElementById("leaderboard").scrollIntoView();</script>', unsafe_allow_html=True)
-
-    # Fetch data
-    complaints = fetch_complaints()
-    municipality_activities = fetch_municipality_activities()
-    municipalities = get_all_municipalities()
-    
-    # Sort complaints by upvotes
-    complaints.sort(key=lambda x: x.get('upvotes', 0), reverse=True)
-    
-    # Categorize complaints
-    low_priority = [c for c in complaints if c.get('upvotes', 0) < 15]
-    mid_priority = [c for c in complaints if 15 <= c.get('upvotes', 0) < 35]
-    high_priority = [c for c in complaints if c.get('upvotes', 0) >= 35]
-    
-    st.markdown("---")
-    
-    # SECTION 1: GREEN ALERT - Low Priority Issues
-    st.markdown("<div id='green-alert'></div>", unsafe_allow_html=True)
-    st.markdown("""
-    <div class='alert-section'>
-        <h2 style='color: #10b981; text-align: center; margin-bottom: 10px;'>
-            🟢 सामान्य प्राथमिकता / Normal Priority
-        </h2>
-        <p style='text-align: center; color: #888; margin-bottom: 20px; font-size: 0.9rem;'>
-            समस्याहरू जसमा कम मात्रामा मत छन् (०-१५ मत) / Issues with low votes (0-15 upvotes)
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if low_priority:
-        for complaint in low_priority[:5]:  # Show top 5
-            display_complaint_card(complaint, show_voting=True)
-    else:
-        st.markdown("<p style='text-align: center; color: #10b981;'>✅ No low priority alerts currently</p>", unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # SECTION 2: ORANGE ALERT - Mid Priority Issues
-    st.markdown("<div id='orange-alert'></div>", unsafe_allow_html=True)
-    st.markdown("""
-    <div class='alert-section'>
-        <h2 style='color: #f59e0b; text-align: center; margin-bottom: 10px;'>
-            🟠 मध्यम प्राथमिकता / Medium Priority
-        </h2>
-        <p style='text-align: center; color: #888; margin-bottom: 20px; font-size: 0.9rem;'>
-            बढ्दो चिन्ताका विषयहरू (१५-३५ मत) / Growing concerns (15-35 upvotes)
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if mid_priority:
-        for complaint in mid_priority:
-            display_complaint_card(complaint, show_voting=True)
-    else:
-        st.markdown("<p style='text-align: center; color: #f59e0b;'>✅ No medium priority alerts currently</p>", unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # SECTION 3: RED ALERT - High Priority Issues
-    st.markdown("<div id='red-alert'></div>", unsafe_allow_html=True)
-    st.markdown("""
-    <div class='alert-section'>
-        <h2 style='color: #ef4444; text-align: center; margin-bottom: 10px;'>
-            🚨 उच्च प्राथमिकता / High Priority
-        </h2>
-        <p style='text-align: center; color: #888; margin-bottom: 20px; font-size: 0.9rem;'>
-            तत्काल ध्यान दिनुपर्ने समस्याहरू (३५+ मत) / Urgent issues (35+ upvotes)
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if high_priority:
-        for complaint in high_priority:
-            display_complaint_card(complaint, show_voting=True)
-    else:
-        st.markdown("<p style='text-align: center; color: #10b981;'>✅ No high priority alerts currently</p>", unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # SECTION 4: Municipality Updates Feed
-    st.markdown("<div id='muni-updates'></div>", unsafe_allow_html=True)
-    st.markdown("""
-    <div class='alert-section'>
-        <h2 style='color: #3b82f6; text-align: center; margin-bottom: 10px;'>
-            🏛️ नगरपालिका अपडेट / Municipality Updates
-        </h2>
-        <p style='text-align: center; color: #888; margin-bottom: 20px; font-size: 0.9rem;'>
-            नगरपालिकाका पछिल्ला गतिविधिहरू / Latest municipality activities
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if municipality_activities:
-        for activity in municipality_activities[:10]:  # Show latest 10 activities
-            display_activity_card(activity)
-    else:
-        st.markdown("<p style='text-align: center; color: #888;'>No municipality updates currently</p>", unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # SECTION 5: Municipality Leaderboard
-    st.markdown("<div id='leaderboard'></div>", unsafe_allow_html=True)
-    st.markdown("""
-    <div class='alert-section'>
-        <h2 style='color: #ffd700; text-align: center; margin-bottom: 10px;'>
-            🏆 उत्कृष्ट नगरपालिका / Top Municipalities
-        </h2>
-        <p style='text-align: center; color: #888; margin-bottom: 20px; font-size: 0.9rem;'>
-            सर्वोत्कृष्ट कार्य गर्ने नगरपालिकाहरू / Best performing municipalities
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Calculate scores and display leaderboard
-    municipality_scores = calculate_municipality_score(municipalities)
-    sorted_municipalities = sorted(municipality_scores.items(), key=lambda x: x[1], reverse=True)
-    
-    leaderboard_cols = st.columns(3)
-    for idx, (muni, score) in enumerate(sorted_municipalities):
-        col_idx = idx % 3
-        with leaderboard_cols[col_idx]:
-            medal = "🥇" if idx == 0 else "🥈" if idx == 1 else "🥉" if idx == 2 else "🏅"
-            rank_color = "#ffd700" if idx == 0 else "#c0c0c0" if idx == 1 else "#cd7f32" if idx == 2 else "#888"
-            st.markdown(f"""
-            <div style='background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,215,0,0.05) 100%); 
-                        border: 2px solid {rank_color}; 
-                        padding: 15px; 
-                        border-radius: 10px; 
-                        margin: 10px 0; 
-                        text-align: center;
-                        box-shadow: 0 4px 8px rgba(0,0,0,0.3);'>
-                <div style='font-size: 2rem; margin-bottom: 5px;'>{medal}</div>
-                <h4 style='color: {rank_color}; margin-bottom: 5px;'>#{idx + 1}</h4>
-                <p style='color: white; margin-bottom: 5px;'>{muni}</p>
-                <span style='background: {rank_color}; color: black; padding: 4px 8px; border-radius: 15px; font-size: 12px; font-weight: bold;'>
-                    {score} points
-                </span>
-            </div>
-            """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # Action Button Section
-    if st.session_state.role == "citizen":
-        # Submit Complaint Button
-        st.markdown("""
-        <div style='text-align: center; margin: 30px 0;'>
-            <h3 style='color: #ff6b6b; margin-bottom: 20px;'>📝 नयाँ गुनासो दर्ता / Report New Issue</h3>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        with st.expander("➕ नयाँ गुनासो दर्ता गर्नुहोस् / Submit a New Complaint", expanded=False):
-            with st.form("complaint_form"):
-                title = st.text_input("Complaint Title")
-                content = st.text_area("Complaint Content")
-                image_file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png"])
-                if st.form_submit_button("🚀 Submit Complaint", use_container_width=True):
-                    if title and content:
-                        resp = submit_complaint(title, content, image_file)
-                        if resp.status_code == 200:
-                            st.success("✅ Complaint submitted successfully!")
-                            st.rerun()
-                        else:
-                            st.error(f"❌ Failed: {resp.text}")
-                    else:
-                        st.warning("Please fill in all required fields!")
-    
-    elif st.session_state.role == "staff":
-        # Post Municipality Activity Button
-        st.markdown("""
-        <div style='text-align: center; margin: 30px 0;'>
-            <h3 style='color: #3b82f6; margin-bottom: 20px;'>🏛️ नगरपालिका अपडेट / Municipality Update</h3>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        with st.expander("📢 नयाँ नगरपालिका गतिविधि / Post New Municipality Activity", expanded=False):
-            with st.form("municipality_form"):
-                title = st.text_input("Activity Title")
-                action = st.selectbox("Action Type", ["working", "completed"])
-                statement = st.text_area("Statement (Optional)")
-                image_file = st.file_uploader("Action Image (Optional)", type=["jpg", "jpeg", "png"])
-                
-                if st.form_submit_button("🚀 Post Update", use_container_width=True):
-                    if title:
-                        resp = post_municipality_action(title, action, statement, image_file)
-                        if resp.status_code == 200:
-                            st.success("✅ Municipality update posted successfully!")
-                            st.rerun()
-                        else:
-                            st.error(f"❌ Error: {resp.text}")
-                    else:
-                        st.warning("Please provide a title for the activity!")
+        st.markdown(f"*Last updated: {datetime.now().strftime('%H:%M:%S')}*")
