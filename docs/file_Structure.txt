@@ -1,7 +1,8 @@
 complaint-box/
 │
 ├── backend/                      
-│   ├── main.py                   # FastAPI app (serves APIs)
+│   ├── main.py                    #fastapi server
+    |__ dependency.py
 │   ├── models.py                 # Data models (Complaint, User, Municipality)
 │   ├── routes/
 │   │   ├── complaints.py         # Submission + feed APIs
@@ -9,7 +10,8 @@ complaint-box/
 │   │   ├── municipality.py       # Dashboard APIs
 │   ├── utils/
 │   │   ├── file_handler.py       # Image save & JSON update
-│   │   └── auth_utils.py         # OTP verification
+│   │   └── auth_utils.py 
+        |__ security.py
 │   ├── data/
 │   │   ├── complaints.json
 │   │   ├── users.json
@@ -22,7 +24,7 @@ complaint-box/
 ├── docs/
 │   ├── flowchart.png
 │   ├── api_endpoints.md
-│   └── db_schema.md
+│   
 │
 ├── .gitignore
 ├── README.md
