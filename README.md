@@ -67,10 +67,6 @@ streamlit run streamlit_login.py
 ├── frontend/
 │ └── streamlit_login.py # Streamlit-based demo frontend
 │
-├── docs/ # Documentation
-│ ├── file_structure.txt
-│ └── flowchart.txt
-│
 ├── tests/ # Test cases
 │
 ├── venv/ # Virtual environment
@@ -99,3 +95,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Built with ❤️ for Nepal's communities
 
 - Powered by FastAPI and Streamlit
+
